@@ -1,9 +1,9 @@
--- Sprite UI Library v1.0
+-- Sprite UI Library v1.1
 local Sprite = {}
 
 -- Конфигурация
 Sprite.Settings = {
-    ToggleKey = Enum.KeyCode.Insert, -- Клавиша открытия/закрытия
+    ToggleKey = Enum.KeyCode.Insert,
     MainColor = Color3.fromRGB(30, 30, 30),
     AccentColor = Color3.fromRGB(0, 234, 129),
     TextColor = Color3.fromRGB(200, 200, 200),
@@ -12,6 +12,8 @@ Sprite.Settings = {
 
 -- Создание главного окна
 function Sprite:CreateWindow(name, size)
+    local self = setmetatable({}, {__index = Sprite})
+    
     local gui = Instance.new("ScreenGui")
     gui.Name = name
     gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -23,8 +25,45 @@ function Sprite:CreateWindow(name, size)
     mainFrame.BackgroundColor3 = self.Settings.MainColor
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
+    mainFrame.Draggable = true
     mainFrame.Visible = false
     mainFrame.Parent = gui
+
+    -- Верхняя панель
+    local topBar = Instance.new("Frame")
+    topBar.Name = "TopBar"
+    topBar.Size = UDim2.new(1, 0, 0, 25)
+    topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    topBar.BorderSizePixel = 0
+    topBar.Parent = mainFrame
+
+    local title = Instance.new("TextLabel")
+    title.Text = name
+    title.TextColor3 = self.Settings.TextColor
+    title.Font = self.Settings.Font
+    title.TextSize = 14
+    title.BackgroundTransparency = 1
+    title.Size = UDim2.new(1, 0, 1, 0)
+    title.TextXAlignment = Enum.TextXAlignment.Center
+    title.Parent = topBar
+
+    -- Панель вкладок слева
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Name = "TabContainer"
+    tabContainer.Size = UDim2.new(0, 80, 1, -25)
+    tabContainer.Position = UDim2.new(0, 0, 0, 25)
+    tabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    tabContainer.BorderSizePixel = 0
+    tabContainer.Parent = mainFrame
+
+    -- Контейнер для контента
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "Content"
+    contentContainer.Size = UDim2.new(1, -80, 1, -25)
+    contentContainer.Position = UDim2.new(0, 80, 0, 25)
+    contentContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    contentContainer.BorderSizePixel = 0
+    contentContainer.Parent = mainFrame
 
     -- Курсор
     local cursor = Instance.new("Frame")
@@ -33,53 +72,102 @@ function Sprite:CreateWindow(name, size)
     cursor.BackgroundColor3 = self.Settings.AccentColor
     cursor.BorderSizePixel = 0
     cursor.ZIndex = 999
+    cursor.Visible = false
     cursor.Parent = gui
 
     -- Обработка клавиш
     game:GetService("UserInputService").InputBegan:Connect(function(input)
         if input.KeyCode == self.Settings.ToggleKey then
             mainFrame.Visible = not mainFrame.Visible
+            cursor.Visible = mainFrame.Visible
+            
+            if mainFrame.Visible then
+                game:GetService("UserInputService").MouseBehavior = Enum.MouseBehavior.Default
+            else
+                game:GetService("UserInputService").MouseBehavior = Enum.MouseBehavior.LockCenter
+            end
         end
     end)
 
     -- Движение курсора
-    game:GetService("RunService").Stepped:Connect(function()
+    game:GetService("RunService").RenderStepped:Connect(function()
         local mouse = game.Players.LocalPlayer:GetMouse()
-        cursor.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
-        cursor.Visible = mainFrame.Visible
+        cursor.Position = UDim2.new(0, mouse.X - 5, 0, mouse.Y - 5)
     end)
 
     self.GUI = gui
     self.MainFrame = mainFrame
+    self.TabContainer = tabContainer
+    self.ContentContainer = contentContainer
+    self.Tabs = {}
+    
     return self
 end
 
 -- Создание вкладки
-function Sprite:CreateTab(name, icon)
-    local tabButton = Instance.new("ImageButton")
+function Sprite:CreateTab(name, iconId)
+    local tabButton = Instance.new("TextButton")
     tabButton.Name = name .. "TabBtn"
-    tabButton.Size = UDim2.new(0, 60, 0, 60)
-    tabButton.BackgroundTransparency = 1
-    tabButton.Image = icon or ""
-    tabButton.Parent = self.MainFrame
+    tabButton.Size = UDim2.new(1, -10, 0, 60)
+    tabButton.Position = UDim2.new(0, 5, 0, #self.Tabs * 65 + 10)
+    tabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabButton.BorderSizePixel = 0
+    tabButton.Text = ""
+    tabButton.AutoButtonColor = false
+    tabButton.Parent = self.TabContainer
 
-    local tabFrame = Instance.new("Frame")
+    if iconId then
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 30, 0, 30)
+        icon.Position = UDim2.new(0.5, -15, 0.2, 0)
+        icon.BackgroundTransparency = 1
+        icon.Image = "rbxassetid://" .. iconId
+        icon.Parent = tabButton
+    end
+
+    local label = Instance.new("TextLabel")
+    label.Text = name
+    label.TextColor3 = self.Settings.TextColor
+    label.Font = self.Settings.Font
+    label.TextSize = 12
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0.7, 0)
+    label.Parent = tabButton
+
+    local tabFrame = Instance.new("ScrollingFrame")
     tabFrame.Name = name .. "Tab"
-    tabFrame.Size = UDim2.new(0.8, 0, 0.9, 0)
-    tabFrame.Position = UDim2.new(0.2, 0, 0.05, 0)
-    tabFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    tabFrame.Size = UDim2.new(1, 0, 1, 0)
+    tabFrame.BackgroundTransparency = 1
+    tabFrame.BorderSizePixel = 0
+    tabFrame.ScrollBarThickness = 5
     tabFrame.Visible = false
-    tabFrame.Parent = self.MainFrame
+    tabFrame.Parent = self.ContentContainer
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.Padding = UDim.new(0, 10)
+    uiListLayout.Parent = tabFrame
 
     tabButton.MouseButton1Click:Connect(function()
-        for _, child in pairs(self.MainFrame:GetChildren()) do
-            if child:IsA("Frame") and child.Name:find("Tab") then
-                child.Visible = false
-            end
+        for _, tab in pairs(self.Tabs) do
+            tab.Frame.Visible = false
         end
         tabFrame.Visible = true
     end)
 
+    local tabData = {
+        Button = tabButton,
+        Frame = tabFrame,
+        Name = name
+    }
+    
+    table.insert(self.Tabs, tabData)
+    
+    -- Автоматически показываем первую вкладку
+    if #self.Tabs == 1 then
+        tabFrame.Visible = true
+    end
+    
     return tabFrame
 end
 
@@ -87,9 +175,10 @@ end
 function Sprite:CreateSection(tab, name)
     local section = Instance.new("Frame")
     section.Name = name .. "Section"
-    section.Size = UDim2.new(0.45, 0, 0, 150)
-    section.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    section.Size = UDim2.new(1, -20, 0, 0)
+    section.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     section.BorderSizePixel = 0
+    section.AutomaticSize = Enum.AutomaticSize.Y
     section.Parent = tab
 
     local title = Instance.new("TextLabel")
@@ -97,20 +186,32 @@ function Sprite:CreateSection(tab, name)
     title.Text = name
     title.TextColor3 = self.Settings.TextColor
     title.Font = self.Settings.Font
-    title.TextSize = 14
+    title.TextSize = 16
     title.BackgroundTransparency = 1
-    title.Size = UDim2.new(1, 0, 0, 20)
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = section
 
-    return section
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, 0, 0, 0)
+    content.BackgroundTransparency = 1
+    content.AutomaticSize = Enum.AutomaticSize.Y
+    content.Position = UDim2.new(0, 0, 0, 30)
+    content.Parent = section
+
+    local uiListLayout = Instance.new("UIListLayout")
+    uiListLayout.Padding = UDim.new(0, 5)
+    uiListLayout.Parent = content
+
+    return content
 end
 
 -- Создание переключателя
 function Sprite:CreateToggle(section, name, callback)
     local toggle = Instance.new("TextButton")
     toggle.Name = name .. "Toggle"
-    toggle.Size = UDim2.new(1, -20, 0, 25)
-    toggle.Position = UDim2.new(0, 10, 0, 30)
+    toggle.Size = UDim2.new(1, 0, 0, 25)
     toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     toggle.Text = ""
     toggle.AutoButtonColor = false
@@ -121,7 +222,7 @@ function Sprite:CreateToggle(section, name, callback)
     label.Text = name
     label.TextColor3 = self.Settings.TextColor
     label.Font = self.Settings.Font
-    label.TextSize = 12
+    label.TextSize = 14
     label.BackgroundTransparency = 1
     label.Size = UDim2.new(0.7, 0, 1, 0)
     label.Position = UDim2.new(0.1, 0, 0, 0)
@@ -145,98 +246,12 @@ function Sprite:CreateToggle(section, name, callback)
     end)
 
     return {
-        Set = function(self, value)
+        Set = function(value)
             state = value
             indicator.BackgroundColor3 = state and self.Settings.AccentColor or Color3.fromRGB(100, 100, 100)
+            if callback then callback(state) end
         end,
         Get = function() return state end
-    }
-end
-
--- Создание слайдера
-function Sprite:CreateSlider(section, name, min, max, callback)
-    local slider = Instance.new("Frame")
-    slider.Name = name .. "Slider"
-    slider.Size = UDim2.new(1, -20, 0, 40)
-    slider.BackgroundTransparency = 1
-    slider.Parent = section
-
-    local label = Instance.new("TextLabel")
-    label.Text = name
-    label.TextColor3 = self.Settings.TextColor
-    label.Font = self.Settings.Font
-    label.TextSize = 12
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.new(1, 0, 0, 15)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = slider
-
-    local track = Instance.new("Frame")
-    track.Name = "Track"
-    track.Size = UDim2.new(1, 0, 0, 5)
-    track.Position = UDim2.new(0, 0, 0, 20)
-    track.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    track.BorderSizePixel = 0
-    track.Parent = slider
-
-    local fill = Instance.new("Frame")
-    fill.Name = "Fill"
-    fill.Size = UDim2.new(0.5, 0, 1, 0)
-    fill.BackgroundColor3 = self.Settings.AccentColor
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-
-    local valueLabel = Instance.new("TextLabel")
-    valueLabel.Name = "Value"
-    valueLabel.Text = tostring(math.floor((max - min) * 0.5 + min))
-    valueLabel.TextColor3 = self.Settings.TextColor
-    valueLabel.Font = self.Settings.Font
-    valueLabel.TextSize = 12
-    valueLabel.BackgroundTransparency = 1
-    valueLabel.Size = UDim2.new(0, 50, 0, 15)
-    valueLabel.Position = UDim2.new(1, -50, 0, 20)
-    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valueLabel.Parent = slider
-
-    local dragging = false
-    local function update(value)
-        local percent = (value - min) / (max - min)
-        fill.Size = UDim2.new(percent, 0, 1, 0)
-        valueLabel.Text = tostring(math.floor(value))
-        if callback then callback(value) end
-    end
-
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-
-    game:GetService("UserInputService").InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-
-    game:GetService("RunService").RenderStepped:Connect(function()
-        if dragging then
-            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-            local percent = (mouse.X - track.AbsolutePosition.X) / track.AbsoluteSize.X
-            percent = math.clamp(percent, 0, 1)
-            local value = min + (max - min) * percent
-            update(value)
-        end
-    end)
-
-    update((max - min) * 0.5 + min) -- Установка среднего значения
-
-    return {
-        Set = function(self, value)
-            update(math.clamp(value, min, max))
-        end,
-        Get = function()
-            return tonumber(valueLabel.Text)
-        end
     }
 end
 
