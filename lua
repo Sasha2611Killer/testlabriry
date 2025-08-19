@@ -1,4 +1,4 @@
--- Sprite UI Library v1.0 - Single File Version
+-- Sprite UI Library v1.0 - Fixed Version
 local Sprite = {}
 
 -- Конфигурация
@@ -16,6 +16,7 @@ function Sprite.CreateWindow(name, size)
     
     local gui = Instance.new("ScreenGui")
     gui.Name = name or "SpriteUI"
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local mainFrame = Instance.new("Frame")
@@ -173,13 +174,21 @@ end
 
 -- Создание секции
 function Sprite:CreateSection(name)
+    if #self.Tabs == 0 then
+        warn("Сначала создайте вкладку!")
+        return nil
+    end
+    
+    local currentTab = self.Tabs[#self.Tabs].Frame
+    
     local section = Instance.new("Frame")
     section.Name = name .. "Section"
     section.Size = UDim2.new(1, -20, 0, 0)
     section.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     section.BorderSizePixel = 0
     section.AutomaticSize = Enum.AutomaticSize.Y
-    section.Parent = self.Tabs[#self.Tabs].Frame
+    section.Position = UDim2.new(0, 10, 0, (#currentTab:GetChildren() - 1) * 160 + 10)
+    section.Parent = currentTab
 
     local title = Instance.new("TextLabel")
     title.Name = "Title"
@@ -254,14 +263,5 @@ function Sprite:CreateToggle(section, name, callback)
         Get = function() return state end
     }
 end
-
--- Пример использования (можно удалить в финальной версии)
-local window = Sprite.CreateWindow("Sprite UI Demo")
-window:CreateTab("Visuals", 3797979749)
-window:CreateTab("Aim", 3797238587)
-local visualsSection = window:CreateSection("ESP Settings")
-local toggle = window:CreateToggle(visualsSection, "Player ESP", function(state)
-    print("Player ESP:", state)
-end)
 
 return Sprite
