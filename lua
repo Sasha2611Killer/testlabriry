@@ -1,4 +1,4 @@
--- Sprite UI Library v1.1
+-- Sprite UI Library v1.0 - Single File Version
 local Sprite = {}
 
 -- Конфигурация
@@ -11,18 +11,18 @@ Sprite.Settings = {
 }
 
 -- Создание главного окна
-function Sprite:CreateWindow(name, size)
+function Sprite.CreateWindow(name, size)
     local self = setmetatable({}, {__index = Sprite})
     
     local gui = Instance.new("ScreenGui")
-    gui.Name = name
+    gui.Name = name or "SpriteUI"
     gui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "Main"
     mainFrame.Size = size or UDim2.new(0, 650, 0, 500)
     mainFrame.Position = UDim2.new(0.5, -325, 0.5, -250)
-    mainFrame.BackgroundColor3 = self.Settings.MainColor
+    mainFrame.BackgroundColor3 = Sprite.Settings.MainColor
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
     mainFrame.Draggable = true
@@ -38,9 +38,9 @@ function Sprite:CreateWindow(name, size)
     topBar.Parent = mainFrame
 
     local title = Instance.new("TextLabel")
-    title.Text = name
-    title.TextColor3 = self.Settings.TextColor
-    title.Font = self.Settings.Font
+    title.Text = name or "Sprite UI"
+    title.TextColor3 = Sprite.Settings.TextColor
+    title.Font = Sprite.Settings.Font
     title.TextSize = 14
     title.BackgroundTransparency = 1
     title.Size = UDim2.new(1, 0, 1, 0)
@@ -69,7 +69,7 @@ function Sprite:CreateWindow(name, size)
     local cursor = Instance.new("Frame")
     cursor.Name = "Cursor"
     cursor.Size = UDim2.new(0, 10, 0, 10)
-    cursor.BackgroundColor3 = self.Settings.AccentColor
+    cursor.BackgroundColor3 = Sprite.Settings.AccentColor
     cursor.BorderSizePixel = 0
     cursor.ZIndex = 999
     cursor.Visible = false
@@ -77,7 +77,7 @@ function Sprite:CreateWindow(name, size)
 
     -- Обработка клавиш
     game:GetService("UserInputService").InputBegan:Connect(function(input)
-        if input.KeyCode == self.Settings.ToggleKey then
+        if input.KeyCode == Sprite.Settings.ToggleKey then
             mainFrame.Visible = not mainFrame.Visible
             cursor.Visible = mainFrame.Visible
             
@@ -121,14 +121,14 @@ function Sprite:CreateTab(name, iconId)
         icon.Size = UDim2.new(0, 30, 0, 30)
         icon.Position = UDim2.new(0.5, -15, 0.2, 0)
         icon.BackgroundTransparency = 1
-        icon.Image = "rbxassetid://" .. iconId
+        icon.Image = "rbxassetid://" .. tostring(iconId)
         icon.Parent = tabButton
     end
 
     local label = Instance.new("TextLabel")
     label.Text = name
-    label.TextColor3 = self.Settings.TextColor
-    label.Font = self.Settings.Font
+    label.TextColor3 = Sprite.Settings.TextColor
+    label.Font = Sprite.Settings.Font
     label.TextSize = 12
     label.BackgroundTransparency = 1
     label.Size = UDim2.new(1, 0, 0, 20)
@@ -168,24 +168,24 @@ function Sprite:CreateTab(name, iconId)
         tabFrame.Visible = true
     end
     
-    return tabFrame
+    return self
 end
 
 -- Создание секции
-function Sprite:CreateSection(tab, name)
+function Sprite:CreateSection(name)
     local section = Instance.new("Frame")
     section.Name = name .. "Section"
     section.Size = UDim2.new(1, -20, 0, 0)
     section.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     section.BorderSizePixel = 0
     section.AutomaticSize = Enum.AutomaticSize.Y
-    section.Parent = tab
+    section.Parent = self.Tabs[#self.Tabs].Frame
 
     local title = Instance.new("TextLabel")
     title.Name = "Title"
     title.Text = name
-    title.TextColor3 = self.Settings.TextColor
-    title.Font = self.Settings.Font
+    title.TextColor3 = Sprite.Settings.TextColor
+    title.Font = Sprite.Settings.Font
     title.TextSize = 16
     title.BackgroundTransparency = 1
     title.Size = UDim2.new(1, 0, 0, 30)
@@ -220,8 +220,8 @@ function Sprite:CreateToggle(section, name, callback)
     local label = Instance.new("TextLabel")
     label.Name = "Label"
     label.Text = name
-    label.TextColor3 = self.Settings.TextColor
-    label.Font = self.Settings.Font
+    label.TextColor3 = Sprite.Settings.TextColor
+    label.Font = Sprite.Settings.Font
     label.TextSize = 14
     label.BackgroundTransparency = 1
     label.Size = UDim2.new(0.7, 0, 1, 0)
@@ -241,18 +241,27 @@ function Sprite:CreateToggle(section, name, callback)
 
     toggle.MouseButton1Click:Connect(function()
         state = not state
-        indicator.BackgroundColor3 = state and self.Settings.AccentColor or Color3.fromRGB(100, 100, 100)
+        indicator.BackgroundColor3 = state and Sprite.Settings.AccentColor or Color3.fromRGB(100, 100, 100)
         if callback then callback(state) end
     end)
 
     return {
         Set = function(value)
             state = value
-            indicator.BackgroundColor3 = state and self.Settings.AccentColor or Color3.fromRGB(100, 100, 100)
+            indicator.BackgroundColor3 = state and Sprite.Settings.AccentColor or Color3.fromRGB(100, 100, 100)
             if callback then callback(state) end
         end,
         Get = function() return state end
     }
 end
+
+-- Пример использования (можно удалить в финальной версии)
+local window = Sprite.CreateWindow("Sprite UI Demo")
+window:CreateTab("Visuals", 3797979749)
+window:CreateTab("Aim", 3797238587)
+local visualsSection = window:CreateSection("ESP Settings")
+local toggle = window:CreateToggle(visualsSection, "Player ESP", function(state)
+    print("Player ESP:", state)
+end)
 
 return Sprite
